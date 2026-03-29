@@ -1,6 +1,6 @@
 # create-bug
 
-A CLI tool for creating bugs on [Bugzilla](https://www.bugzilla.org) from the terminal. Supports fuzzy component matching, config-based defaults, and JSON output for use as a [Claude Code](https://claude.ai/code) SKILL.
+A CLI tool and interactive TUI for creating bugs on [Bugzilla](https://www.bugzilla.org) from the terminal. Supports fuzzy component matching, config-based defaults, and JSON output for use as a [Claude Code](https://claude.ai/code) SKILL.
 
 ## Install
 
@@ -8,15 +8,50 @@ A CLI tool for creating bugs on [Bugzilla](https://www.bugzilla.org) from the te
 go install github.com/gabrielluong/create-bug@latest
 ```
 
-Or build from source:
+Both binaries are included. Build from source:
 
 ```sh
 git clone https://github.com/gabrielluong/create-bug.git
 cd create-bug
-go build -o create-bug .
+go build -o create-bug .            # CLI
+go build -o create-bug-tui ./cmd/tui/  # TUI
 ```
 
-## Usage
+## TUI
+
+Launch the interactive form:
+
+```sh
+create-bug-tui
+```
+
+### Fields
+
+| Field | Notes |
+|-------|-------|
+| Summary | Required |
+| Component | Fuzzy-filtered dropdown for known products; free-text otherwise |
+| Description | Inline textarea; supports multi-line editing |
+| Blocks | Comma-separated bug IDs; autocomplete from filing history |
+| Depends on | Comma-separated bug IDs; autocomplete from filing history |
+
+### Navigation
+
+| Key | Action |
+|-----|--------|
+| `Tab` / `Shift+Tab` | Cycle between fields |
+| `↑` / `↓` | Move between fields (or navigate an open dropdown) |
+| `Enter` | Confirm dropdown selection |
+| `Esc` | Close dropdown |
+| `Ctrl+S` | Submit bug |
+| `Ctrl+N` | File another bug (after submit) |
+| `Ctrl+C` | Quit |
+
+### Autocomplete ranking
+
+In the Blocks and Depends on fields, bugs with `[meta]` in their summary are ranked first in the autocomplete list, followed by most-recently-filed bugs. The same ranking applies to CLI tab completion.
+
+## CLI
 
 ```sh
 # With all flags
@@ -30,6 +65,9 @@ create-bug "Crash on startup"
 # Fuzzy component matching
 create-bug "Theme issue" --component "design"
 # stderr: Matched component: "Design System and Theming" (from "design")
+
+# Block and depend on other bugs
+create-bug "Follow-up fix" --blocks 123,456 --depends-on 789
 
 # JSON output
 create-bug "Crash on startup" --json
@@ -110,14 +148,14 @@ create-bug completion fish > ~/.config/fish/completions/create-bug.fish
 
 Tab completion is supported for:
 - `--component` — known components for the selected product
-- `--blocks` / `--depends-on` — bug IDs from your filing history; each entry displays as `Bug {id} - {summary} [Product :: Component]`; supports comma-separated multi-value input
+- `--blocks` / `--depends-on` — bug IDs from your filing history, displayed as `Bug {id} - {summary} [Product :: Component]`; supports comma-separated multi-value input; `[meta]` bugs ranked first
 
 ## Updates
 
 The tool checks for new versions once per 24 hours in the background and prints a notice to stderr after any command if a newer version is available:
 
 ```
-A new version (v0.4.0) is available. Run: go install github.com/gabrielluong/create-bug@latest
+A new version (v0.5.0) is available. Run: go install github.com/gabrielluong/create-bug@latest
 ```
 
 To update immediately:
