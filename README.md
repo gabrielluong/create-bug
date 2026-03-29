@@ -33,6 +33,12 @@ create-bug "Theme issue" --component "design"
 
 # JSON output
 create-bug "Crash on startup" --json
+
+# View recently filed bugs
+create-bug --history
+
+# View as JSON
+create-bug --history --json
 ```
 
 ## Configuration
@@ -43,6 +49,7 @@ Create `~/.config/create-bug/config.json`:
 {
   "apiKey": "your-bugzilla-api-key",
   "baseUrl": "https://your-bugzilla-instance.example.com",
+  "historySize": 20,
   "defaults": {
     "product": "Product",
     "component": "General",
@@ -55,6 +62,8 @@ Create `~/.config/create-bug/config.json`:
   }
 }
 ```
+
+`historySize` controls how many recently filed bugs to remember (default: 20). History is saved to `~/.config/create-bug/history.json`.
 
 Environment variables take priority over the config file:
 
@@ -82,6 +91,8 @@ Environment variables take priority over the config file:
 | `--alias` | | Short alias |
 | `--status` | | Initial status |
 | `--json` | | Output raw JSON |
+| `--history` | `-H` | Show recently filed bugs |
+| `--clear-history` | | Clear the filing history |
 
 ## Shell Completion
 
@@ -95,6 +106,10 @@ create-bug completion bash > /etc/bash_completion.d/create-bug
 # fish
 create-bug completion fish > ~/.config/fish/completions/create-bug.fish
 ```
+
+Tab completion is supported for:
+- `--component` — known components for the selected product
+- `--blocks` / `--depends-on` — bug IDs from your filing history, with summaries shown as descriptions; supports comma-separated multi-value input
 
 ## License
 

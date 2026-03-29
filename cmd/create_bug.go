@@ -211,6 +211,9 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 		}
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	})
+
+	cmd.RegisterFlagCompletionFunc("blocks", completeBugIDs)
+	cmd.RegisterFlagCompletionFunc("depends-on", completeBugIDs)
 }
 
 func mergeFlag(cmd *cobra.Command, name, flagVal, defaultVal string) string {
@@ -268,6 +271,43 @@ func showHistory(cfg *config.Config, jsonOutput bool) error {
 		fmt.Fprintf(os.Stdout, "  %s  (%s)\n", e.URL, e.CreatedAt.Format("2006-01-02 15:04"))
 	}
 	return nil
+}
+
+func completeBugIDs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	directive := cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+
+	entries, err := history.Load()
+	if err != nil || len(entries) == 0 {
+		return nil, directive
+	}
+
+	// Split on last comma to get prefix (already-typed IDs) and current fragment.
+	prefix := ""
+	fragment := toComplete
+	if idx := strings.LastIndex(toComplete, ","); idx >= 0 {
+		prefix = toComplete[:idx+1]
+		fragment = toComplete[idx+1:]
+	}
+
+	// Exclude already-typed IDs.
+	already := make(map[string]bool)
+	for _, part := range strings.Split(prefix, ",") {
+		if t := strings.TrimSpace(part); t != "" {
+			already[t] = true
+		}
+	}
+
+	var completions []string
+	for _, e := range entries {
+		idStr := strconv.Itoa(e.ID)
+		if already[idStr] {
+			continue
+		}
+		if strings.HasPrefix(idStr, fragment) {
+			completions = append(completions, cobra.CompletionWithDesc(prefix+idStr, e.Summary))
+		}
+	}
+	return completions, directive
 }
 
 func splitInts(s string) ([]int, error) {
