@@ -304,7 +304,8 @@ func completeBugIDs(cmd *cobra.Command, args []string, toComplete string) ([]str
 			continue
 		}
 		if strings.HasPrefix(idStr, fragment) {
-			completions = append(completions, cobra.CompletionWithDesc(prefix+idStr, e.Summary))
+			desc := fmt.Sprintf("Bug %d - %s [%s :: %s]", e.ID, e.Summary, e.Product, e.Component)
+			completions = append(completions, cobra.CompletionWithDesc(prefix+idStr, desc))
 		}
 	}
 	return completions, directive

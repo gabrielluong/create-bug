@@ -109,7 +109,7 @@ create-bug completion fish > ~/.config/fish/completions/create-bug.fish
 
 Tab completion is supported for:
 - `--component` — known components for the selected product
-- `--blocks` / `--depends-on` — bug IDs from your filing history, with summaries shown as descriptions; supports comma-separated multi-value input
+- `--blocks` / `--depends-on` — bug IDs from your filing history; each entry displays as `Bug {id} - {summary} [Product :: Component]`; supports comma-separated multi-value input
 
 ## License
 

@@ -46,7 +46,7 @@ internal/history/
 - `--component` (`-c`) supports fuzzy matching via `sahilm/fuzzy` for known products. Unknown products pass through for API validation.
 - Short flags: `-p` (product), `-c` (component), `-b` (blocks), `-d` (depends-on), `-H` (history).
 - Tab completion registered for `--component` flag (returns known components when `--product` is set or defaulted from config).
-- Tab completion registered for `--blocks` and `--depends-on` flags (returns bug IDs from history with summaries as descriptions; handles comma-separated multi-value input).
+- Tab completion registered for `--blocks` and `--depends-on` flags (returns bug IDs from history; each entry displays as `Bug {id} - {summary} [Product :: Component]`; handles comma-separated multi-value input).
 - `--history` (`-H`) shows recently filed bugs; `--clear-history` removes the history file. Both short-circuit before any bug creation logic.
 - Filing history stored in `~/.config/create-bug/history.json`, capped to `historySize` (default 20, configurable in config file).
 - History silently fails on write errors (fire-and-forget) so it never blocks bug creation.
