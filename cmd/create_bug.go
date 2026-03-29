@@ -64,7 +64,7 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 		// Merge CLI flags with config defaults
 		resolvedProduct := mergeFlag(cmd, "product", product, d.Product)
 		resolvedComponent := mergeFlag(cmd, "component", component, d.Component)
-		resolvedVersion := mergeFlag(cmd, "version", version, d.Version)
+		resolvedVersion := mergeFlag(cmd, "bug-version", version, d.Version)
 		resolvedType := mergeFlag(cmd, "type", bugType, d.Type)
 		resolvedPlatform := mergeFlag(cmd, "platform", platform, d.Platform)
 		resolvedOS := mergeFlag(cmd, "os", opSys, d.OS)
@@ -78,7 +78,7 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 		}{
 			{"--product", resolvedProduct},
 			{"--component", resolvedComponent},
-			{"--version", resolvedVersion},
+			{"--bug-version", resolvedVersion},
 			{"--type", resolvedType},
 		} {
 			if check.val == "" {
@@ -159,10 +159,10 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 		return nil
 	}
 
-	cmd.Flags().StringVar(&product, "product", "", "product the bug is filed against")
-	cmd.Flags().StringVar(&component, "component", "", "component within the product")
+	cmd.Flags().StringVarP(&product, "product", "p", "", "product the bug is filed against")
+	cmd.Flags().StringVarP(&component, "component", "c", "", "component within the product")
 	cmd.Flags().StringVar(&summary, "summary", "", "brief description of the bug")
-	cmd.Flags().StringVar(&version, "version", "", "product version the bug was found in")
+	cmd.Flags().StringVar(&version, "bug-version", "", "product version the bug was found in")
 	cmd.Flags().StringVar(&bugType, "type", "", "bug type (defect, enhancement, task)")
 	cmd.Flags().StringVar(&description, "description", "", "initial comment / bug description")
 	cmd.Flags().StringVar(&priority, "priority", "", "priority (P1–P5)")
@@ -171,14 +171,17 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&opSys, "os", "", "operating system (All, Linux, Windows, macOS, ...)")
 	cmd.Flags().StringVar(&assignedTo, "assigned-to", "", "assign the bug to this user")
 	cmd.Flags().StringVar(&cc, "cc", "", "comma-separated list of CC emails")
-	cmd.Flags().StringVar(&blocks, "blocks", "", "comma-separated bug IDs that this bug blocks")
-	cmd.Flags().StringVar(&dependsOn, "depends-on", "", "comma-separated bug IDs that this bug depends on")
+	cmd.Flags().StringVarP(&blocks, "blocks", "b", "", "comma-separated bug IDs that this bug blocks")
+	cmd.Flags().StringVarP(&dependsOn, "depends-on", "d", "", "comma-separated bug IDs that this bug depends on")
 	cmd.Flags().StringVar(&alias, "alias", "", "short alias for the bug")
 	cmd.Flags().StringVar(&status, "status", "", "initial status (default: UNCONFIRMED or NEW)")
 	cmd.Flags().BoolVar(&jsonFlag, "json", false, "output raw JSON (for Claude integration)")
 
 	cmd.RegisterFlagCompletionFunc("component", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		product, _ := cmd.Flags().GetString("product")
+		if product == "" {
+			product = config.Load().Defaults.Product
+		}
 		if components, ok := bugzilla.ProductComponents[product]; ok {
 			return components, cobra.ShellCompDirectiveNoFileComp
 		}

@@ -25,7 +25,7 @@ cmd/
   create_bug.go      → flag parsing, default merging, fuzzy resolution, output
 internal/bugzilla/
   create_bug.go      → CreateBug() business logic entry point
-  components.go      → hardcoded component lists (Fenix) + fuzzy resolution
+  components.go      → hardcoded component lists (known products) + fuzzy resolution
 internal/client/
   client.go          → HTTP transport: Client, CreateBugParams, error codes
 internal/config/
@@ -41,8 +41,9 @@ internal/config/
 - Bugzilla returns `{ "error": true, "code": N, "message": "..." }` — check this **before** HTTP status.
 - Requires `config.APIKey`; exit early if empty before any network call.
 - Use `cmd.Flags().Changed("flag")` to distinguish "not passed" from "passed empty" when merging with config defaults.
-- `--component` supports fuzzy matching via `sahilm/fuzzy` for known products (Fenix). Unknown products pass through for API validation.
-- Tab completion registered for `--component` flag (returns known components when `--product` is set).
+- `--component` (`-c`) supports fuzzy matching via `sahilm/fuzzy` for known products. Unknown products pass through for API validation.
+- Short flags: `-p` (product), `-c` (component), `-b` (blocks), `-d` (depends-on).
+- Tab completion registered for `--component` flag (returns known components when `--product` is set or defaulted from config).
 
 ## Auth
 
@@ -53,7 +54,7 @@ Set `BUGZILLA_API_KEY` (and optionally `BUGZILLA_URL`) as environment variables,
   "apiKey": "your-key",
   "baseUrl": "https://your-bugzilla-instance.example.com",
   "defaults": {
-    "product": "Fenix",
+    "product": "Product",
     "component": "General",
     "version": "unspecified",
     "type": "defect",

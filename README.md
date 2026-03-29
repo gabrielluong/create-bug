@@ -21,7 +21,7 @@ go build -o create-bug .
 ```sh
 # With all flags
 create-bug "Crash on startup" \
-  --product Fenix --component "Crash Reporting" \
+  -p "Product" -c "Component" \
   --version unspecified --type defect
 
 # With config defaults (only summary needed)
@@ -44,7 +44,7 @@ Create `~/.config/create-bug/config.json`:
   "apiKey": "your-bugzilla-api-key",
   "baseUrl": "https://your-bugzilla-instance.example.com",
   "defaults": {
-    "product": "Fenix",
+    "product": "Product",
     "component": "General",
     "version": "unspecified",
     "type": "defect",
@@ -63,25 +63,25 @@ Environment variables take priority over the config file:
 
 ## Flags
 
-| Flag | Description |
-|------|-------------|
-| `--product` | Product the bug is filed against |
-| `--component` | Component (supports fuzzy matching for known products) |
-| `--summary` | Bug summary (or pass as positional argument) |
-| `--version` | Product version |
-| `--type` | Bug type: `defect`, `enhancement`, `task` |
-| `--description` | Initial comment / bug description |
-| `--priority` | P1-P5 |
-| `--severity` | S1-S4, enhancement, normal |
-| `--platform` | Hardware platform |
-| `--os` | Operating system |
-| `--assigned-to` | Assignee email |
-| `--cc` | Comma-separated CC emails |
-| `--blocks` | Comma-separated bug IDs this blocks |
-| `--depends-on` | Comma-separated bug IDs this depends on |
-| `--alias` | Short alias |
-| `--status` | Initial status |
-| `--json` | Output raw JSON |
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--product` | `-p` | Product the bug is filed against |
+| `--component` | `-c` | Component (supports fuzzy matching for known products) |
+| `--summary` | | Bug summary (or pass as positional argument) |
+| `--version` | | Product version |
+| `--type` | | Bug type: `defect`, `enhancement`, `task` |
+| `--description` | | Initial comment / bug description |
+| `--priority` | | P1-P5 |
+| `--severity` | | S1-S4, enhancement, normal |
+| `--platform` | | Hardware platform |
+| `--os` | | Operating system |
+| `--assigned-to` | | Assignee email |
+| `--cc` | | Comma-separated CC emails |
+| `--blocks` | `-b` | Comma-separated bug IDs this blocks |
+| `--depends-on` | `-d` | Comma-separated bug IDs this depends on |
+| `--alias` | | Short alias |
+| `--status` | | Initial status |
+| `--json` | | Output raw JSON |
 
 ## Shell Completion
 

@@ -48,7 +48,7 @@ var fenixComponents = []string{
 
 // ProductComponents maps known product names to their component lists.
 var ProductComponents = map[string][]string{
-	"Fenix": fenixComponents,
+	"Firefox for Android": fenixComponents,
 }
 
 // ResolveComponent fuzzy-matches the input against the known component list
