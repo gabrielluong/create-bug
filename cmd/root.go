@@ -9,7 +9,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:     "create-bug [summary]",
 	Short:   "Create a Bugzilla bug",
-	Version: "0.2.0",
+	Version: "0.3.0",
 }
 
 func init() {
