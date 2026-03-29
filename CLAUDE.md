@@ -32,6 +32,8 @@ internal/config/
   config.go          → Config, BugDefaults, Load() (env > file > defaults), ConfigDir()
 internal/history/
   history.go         → Load(), Append(), Clear() for ~/.config/create-bug/history.json
+internal/update/
+  update.go          → LatestVersion(), CheckCached(), RefreshCache(), Run(), IsNewer()
 ```
 
 **Key conventions:**
@@ -50,6 +52,10 @@ internal/history/
 - `--history` (`-H`) shows recently filed bugs; `--clear-history` removes the history file. Both short-circuit before any bug creation logic.
 - Filing history stored in `~/.config/create-bug/history.json`, capped to `historySize` (default 20, configurable in config file).
 - History silently fails on write errors (fire-and-forget) so it never blocks bug creation.
+- Version is a package-level constant in `cmd/root.go` (`const version`), used by both cobra and the update checker.
+- `PersistentPreRun` reads the update cache (fast, local file) and spawns `update.RefreshCache()` as a goroutine (async, non-blocking). `PersistentPostRun` prints the update notice to stderr if one was set.
+- Update cache stored in `~/.config/create-bug/update_check.json`; refreshed at most once per 24h. Version source: GitHub tags API.
+- `--update` fetches latest version synchronously and runs `go install github.com/gabrielluong/create-bug@latest` if outdated.
 
 ## Auth
 

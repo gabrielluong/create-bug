@@ -12,6 +12,7 @@ import (
 	"github.com/gabrielluong/create-bug/internal/client"
 	"github.com/gabrielluong/create-bug/internal/config"
 	"github.com/gabrielluong/create-bug/internal/history"
+	"github.com/gabrielluong/create-bug/internal/update"
 
 	"github.com/spf13/cobra"
 )
@@ -37,11 +38,16 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 		jsonFlag         bool
 		historyFlag      bool
 		clearHistoryFlag bool
+		updateFlag       bool
 	)
 
 	cmd.Args = cobra.MaximumNArgs(1)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		cfg := config.Load()
+
+		if updateFlag {
+			return runUpdate()
+		}
 
 		if clearHistoryFlag {
 			return clearHistory()
@@ -200,6 +206,7 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&jsonFlag, "json", false, "output raw JSON (for Claude integration)")
 	cmd.Flags().BoolVarP(&historyFlag, "history", "H", false, "show recently filed bugs")
 	cmd.Flags().BoolVar(&clearHistoryFlag, "clear-history", false, "clear the history of filed bugs")
+	cmd.Flags().BoolVar(&updateFlag, "update", false, "update to the latest version")
 
 	cmd.RegisterFlagCompletionFunc("component", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		product, _ := cmd.Flags().GetString("product")
@@ -233,6 +240,29 @@ func splitTrimmed(s string) []string {
 		}
 	}
 	return result
+}
+
+func runUpdate() error {
+	latest, err := update.LatestVersion()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: failed to check for updates: %s\n", err)
+		return err
+	}
+
+	if !update.IsNewer(version, latest) {
+		fmt.Fprintf(os.Stdout, "Already up to date (%s).\n", version)
+		updateNotice = "" // suppress background notice
+		return nil
+	}
+
+	fmt.Fprintf(os.Stdout, "Updating from %s to %s...\n", version, latest)
+	updateNotice = "" // suppress background notice
+	if err := update.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: update failed: %s\n", err)
+		return err
+	}
+	fmt.Fprintln(os.Stdout, "Update complete.")
+	return nil
 }
 
 func clearHistory() error {

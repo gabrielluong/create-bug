@@ -93,6 +93,7 @@ Environment variables take priority over the config file:
 | `--json` | | Output raw JSON |
 | `--history` | `-H` | Show recently filed bugs |
 | `--clear-history` | | Clear the filing history |
+| `--update` | | Update to the latest version |
 
 ## Shell Completion
 
@@ -110,6 +111,20 @@ create-bug completion fish > ~/.config/fish/completions/create-bug.fish
 Tab completion is supported for:
 - `--component` — known components for the selected product
 - `--blocks` / `--depends-on` — bug IDs from your filing history; each entry displays as `Bug {id} - {summary} [Product :: Component]`; supports comma-separated multi-value input
+
+## Updates
+
+The tool checks for new versions once per 24 hours in the background and prints a notice to stderr after any command if a newer version is available:
+
+```
+A new version (v0.4.0) is available. Run: go install github.com/gabrielluong/create-bug@latest
+```
+
+To update immediately:
+
+```sh
+create-bug --update
+```
 
 ## License
 
