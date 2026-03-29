@@ -1,0 +1,6 @@
+# Go binary
+create-bug
+*.exe
+
+# macOS
+.DS_Store
