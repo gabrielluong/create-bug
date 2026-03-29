@@ -49,7 +49,8 @@ internal/update/
 **Key conventions — CLI:**
 - `internal/client/` owns all HTTP logic. New API calls go here.
 - The root command *is* the create-bug command — no subcommands.
-- `--json` flag for machine-readable stdout output (Claude SKILL integration).
+- `--json` flag for machine-readable stdout output (Claude SKILL integration). Returns `{"id", "url", "summary"}`.
+- `--dry-run` flag: runs all validation and fuzzy resolution, then prints resolved `CreateBugParams` as `{"dry_run": true, "params": {...}}` without making any API call or writing history.
 - Errors to **stderr** via `fmt.Fprintf(os.Stderr, ...)`. `RunE` returns the error to trigger `os.Exit(1)`.
 - `SilenceErrors` and `SilenceUsage` on root — Cobra won't double-print.
 - Bugzilla returns `{ "error": true, "code": N, "message": "..." }` — check this **before** HTTP status.
@@ -77,6 +78,21 @@ internal/update/
 - History autocomplete ranking (both CLI and TUI): bugs with `[meta]` in summary first, then `CreatedAt` descending.
 - On successful submit, history is appended immediately so the new bug appears in Blocks/Depends on autocomplete when filing another.
 - TUI uses hex colors (`#7C3AED` violet family, `#1E293B` slate surfaces) — keep the palette in `internal/tui/theme.go`.
+
+## Claude Code Skill
+
+`skills/create-bugs/SKILL.md` provides the `/create-bugs` slash command. It accepts three input modes:
+- **File path** — reads a PLAN.md or similar markdown file
+- **Inline text** — uses text passed directly as the argument
+- **No argument** — derives work items from the current conversation (tasks discussed, decisions made, work completed)
+
+Workflow:
+1. Determine source and extract discrete work items
+2. Run `create-bug --history --json` to identify already-filed bugs and skip them
+3. Asks upfront for a tracking/metabug to `--blocks` against
+4. Shows a dry-run breakdown (including skipped items) with dependency annotations; waits for confirmation
+5. Files bugs sequentially via `create-bug --json`, using `--depends-on` only where tasks are truly blocked and `--blocks <metabug_id>` on every bug if provided
+6. Reports each bug as `Bug <id> - <summary>` and prints a final summary
 
 ## Auth
 

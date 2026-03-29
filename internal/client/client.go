@@ -29,7 +29,9 @@ type CreateBugParams struct {
 }
 
 type CreateBugResult struct {
-	ID int `json:"id"`
+	ID      int    `json:"id"`
+	URL     string `json:"url,omitempty"`
+	Summary string `json:"summary,omitempty"`
 }
 
 type Client struct {

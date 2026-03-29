@@ -69,8 +69,11 @@ create-bug "Theme issue" --component "design"
 # Block and depend on other bugs
 create-bug "Follow-up fix" --blocks 123,456 --depends-on 789
 
-# JSON output
+# JSON output (includes id, url, summary)
 create-bug "Crash on startup" --json
+
+# Dry run — print resolved params without filing
+create-bug "Crash on startup" --dry-run
 
 # View recently filed bugs
 create-bug --history
@@ -128,7 +131,8 @@ Environment variables take priority over the config file:
 | `--depends-on` | `-d` | Comma-separated bug IDs this depends on |
 | `--alias` | | Short alias |
 | `--status` | | Initial status |
-| `--json` | | Output raw JSON |
+| `--json` | | Output raw JSON (`id`, `url`, `summary`) |
+| `--dry-run` | | Print resolved params as JSON without filing |
 | `--history` | `-H` | Show recently filed bugs |
 | `--clear-history` | | Clear the filing history |
 | `--update` | | Update to the latest version |
@@ -163,6 +167,37 @@ To update immediately:
 ```sh
 create-bug --update
 ```
+
+## Claude Code Skill
+
+This repo includes a `/create-bugs` skill for [Claude Code](https://claude.ai/code) that converts work into a set of Bugzilla bugs with dependency chains. It works from a plan file, inline text, or the current conversation — no plan file required.
+
+### Setup
+
+Add this repo as a local Claude Code plugin to make the `/create-bugs` skill available.
+
+### Usage
+
+```sh
+# From a plan file
+/create-bugs path/to/PLAN.md
+
+# From inline text
+/create-bugs implement OAuth token refresh with silent renewal and logout on expiry
+
+# From the current conversation (tasks discussed, work completed, decisions made)
+/create-bugs
+```
+
+Claude will:
+
+1. Determine the source (file, inline text, or conversation context)
+2. Check filing history to identify and skip already-filed bugs
+3. Ask if there is a tracking/metabug the bugs should block against
+4. Show the full breakdown — including skipped items — with dependency annotations for review
+5. Wait for confirmation before filing anything
+6. File bugs one at a time via `create-bug --json`, using `--depends-on` only where tasks are truly sequential and `--blocks <metabug_id>` on every bug if a metabug was provided
+7. Report each filed bug as `Bug <id> - <summary>` and print a final summary
 
 ## License
 

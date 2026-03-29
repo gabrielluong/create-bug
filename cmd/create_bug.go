@@ -37,6 +37,7 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 		alias       string
 		status      string
 		jsonFlag         bool
+		dryRunFlag       bool
 		historyFlag      bool
 		clearHistoryFlag bool
 		updateFlag       bool
@@ -157,6 +158,19 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 			params.DependsOn = ids
 		}
 
+		if dryRunFlag {
+			out, err := json.MarshalIndent(struct {
+				DryRun bool                    `json:"dry_run"`
+				Params client.CreateBugParams  `json:"params"`
+			}{true, params}, "", "  ")
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+				return err
+			}
+			fmt.Fprintln(os.Stdout, string(out))
+			return nil
+		}
+
 		result, err := bugzilla.CreateBug(cfg, params)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
@@ -164,6 +178,8 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 		}
 
 		bugURL := fmt.Sprintf("%s/show_bug.cgi?id=%d", cfg.BaseURL, result.ID)
+		result.URL = bugURL
+		result.Summary = resolvedSummary
 		_ = history.Append(history.Entry{
 			ID:        result.ID,
 			Summary:   resolvedSummary,
@@ -205,6 +221,7 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&alias, "alias", "", "short alias for the bug")
 	cmd.Flags().StringVar(&status, "status", "", "initial status (default: UNCONFIRMED or NEW)")
 	cmd.Flags().BoolVar(&jsonFlag, "json", false, "output raw JSON (for Claude integration)")
+	cmd.Flags().BoolVar(&dryRunFlag, "dry-run", false, "print resolved params without filing the bug")
 	cmd.Flags().BoolVarP(&historyFlag, "history", "H", false, "show recently filed bugs")
 	cmd.Flags().BoolVar(&clearHistoryFlag, "clear-history", false, "clear the history of filed bugs")
 	cmd.Flags().BoolVar(&updateFlag, "update", false, "update to the latest version")
