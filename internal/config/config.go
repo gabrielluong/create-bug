@@ -18,24 +18,37 @@ type BugDefaults struct {
 }
 
 type Config struct {
-	APIKey   string
-	BaseURL  string
-	Defaults BugDefaults
+	APIKey      string
+	BaseURL     string
+	Defaults    BugDefaults
+	HistorySize int
 }
 
 type configFile struct {
-	APIKey   string      `json:"apiKey,omitempty"`
-	BaseURL  string      `json:"baseUrl,omitempty"`
-	Defaults BugDefaults `json:"defaults,omitempty"`
+	APIKey      string      `json:"apiKey,omitempty"`
+	BaseURL     string      `json:"baseUrl,omitempty"`
+	Defaults    BugDefaults `json:"defaults,omitempty"`
+	HistorySize *int        `json:"historySize,omitempty"`
+}
+
+const DefaultHistorySize = 20
+
+// ConfigDir returns the path to the config directory (~/.config/create-bug).
+func ConfigDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(home, ".config", "create-bug")
 }
 
 func Load() *Config {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return &Config{}
+	dir := ConfigDir()
+	if dir == "" {
+		return &Config{HistorySize: DefaultHistorySize}
 	}
 
-	path := filepath.Join(home, ".config", "create-bug", "config.json")
+	path := filepath.Join(dir, "config.json")
 	var file configFile
 
 	data, err := os.ReadFile(path)
@@ -53,9 +66,15 @@ func Load() *Config {
 		baseURL = file.BaseURL
 	}
 
+	historySize := DefaultHistorySize
+	if file.HistorySize != nil {
+		historySize = *file.HistorySize
+	}
+
 	return &Config{
-		APIKey:   apiKey,
-		BaseURL:  baseURL,
-		Defaults: file.Defaults,
+		APIKey:      apiKey,
+		BaseURL:     baseURL,
+		Defaults:    file.Defaults,
+		HistorySize: historySize,
 	}
 }

@@ -6,10 +6,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gabrielluong/create-bug/internal/bugzilla"
 	"github.com/gabrielluong/create-bug/internal/client"
 	"github.com/gabrielluong/create-bug/internal/config"
+	"github.com/gabrielluong/create-bug/internal/history"
 
 	"github.com/spf13/cobra"
 )
@@ -32,12 +34,22 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 		dependsOn   string
 		alias       string
 		status      string
-		jsonFlag    bool
+		jsonFlag         bool
+		historyFlag      bool
+		clearHistoryFlag bool
 	)
 
 	cmd.Args = cobra.MaximumNArgs(1)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		cfg := config.Load()
+
+		if clearHistoryFlag {
+			return clearHistory()
+		}
+
+		if historyFlag {
+			return showHistory(cfg, jsonFlag)
+		}
 
 		// Resolve summary: positional arg > --summary flag > error
 		resolvedSummary := summary
@@ -144,6 +156,16 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 			return err
 		}
 
+		bugURL := fmt.Sprintf("%s/show_bug.cgi?id=%d", cfg.BaseURL, result.ID)
+		_ = history.Append(history.Entry{
+			ID:        result.ID,
+			Summary:   resolvedSummary,
+			Product:   resolvedProduct,
+			Component: resolvedComponent,
+			URL:       bugURL,
+			CreatedAt: time.Now(),
+		}, cfg.HistorySize)
+
 		if jsonFlag {
 			out, err := json.MarshalIndent(result, "", "  ")
 			if err != nil {
@@ -155,7 +177,7 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 		}
 
 		fmt.Fprintf(os.Stdout, "Created Bug %d\n", result.ID)
-		fmt.Fprintf(os.Stdout, "%s/show_bug.cgi?id=%d\n", cfg.BaseURL, result.ID)
+		fmt.Fprintln(os.Stdout, bugURL)
 		return nil
 	}
 
@@ -176,6 +198,8 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&alias, "alias", "", "short alias for the bug")
 	cmd.Flags().StringVar(&status, "status", "", "initial status (default: UNCONFIRMED or NEW)")
 	cmd.Flags().BoolVar(&jsonFlag, "json", false, "output raw JSON (for Claude integration)")
+	cmd.Flags().BoolVarP(&historyFlag, "history", "H", false, "show recently filed bugs")
+	cmd.Flags().BoolVar(&clearHistoryFlag, "clear-history", false, "clear the history of filed bugs")
 
 	cmd.RegisterFlagCompletionFunc("component", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		product, _ := cmd.Flags().GetString("product")
@@ -206,6 +230,44 @@ func splitTrimmed(s string) []string {
 		}
 	}
 	return result
+}
+
+func clearHistory() error {
+	if err := history.Clear(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: failed to clear history: %s\n", err)
+		return err
+	}
+	fmt.Fprintln(os.Stdout, "History cleared.")
+	return nil
+}
+
+func showHistory(cfg *config.Config, jsonOutput bool) error {
+	entries, err := history.Load()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: failed to load history: %s\n", err)
+		return err
+	}
+
+	if len(entries) == 0 {
+		fmt.Fprintln(os.Stdout, "No bugs filed yet.")
+		return nil
+	}
+
+	if jsonOutput {
+		out, err := json.MarshalIndent(entries, "", "  ")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			return err
+		}
+		fmt.Fprintln(os.Stdout, string(out))
+		return nil
+	}
+
+	for _, e := range entries {
+		fmt.Fprintf(os.Stdout, "Bug %d  %s  [%s :: %s]\n", e.ID, e.Summary, e.Product, e.Component)
+		fmt.Fprintf(os.Stdout, "  %s  (%s)\n", e.URL, e.CreatedAt.Format("2006-01-02 15:04"))
+	}
+	return nil
 }
 
 func splitInts(s string) ([]int, error) {
