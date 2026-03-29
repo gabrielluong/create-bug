@@ -9,6 +9,13 @@ import (
 )
 
 var fenixComponents = []string{
+	// Prioritized components.
+	"Homepage",
+	"Top Sites",
+	"Stories",
+	"Toolbar",
+	"Tabs",
+	// Alphabetical.
 	"Accounts and Sync",
 	"App Links",
 	"Autofill",
@@ -21,7 +28,6 @@ var fenixComponents = []string{
 	"Experimentation and Telemetry",
 	"General",
 	"History",
-	"Homepage",
 	"L10N",
 	"Logins",
 	"Media",
@@ -35,11 +41,7 @@ var fenixComponents = []string{
 	"Search",
 	"Settings",
 	"Share",
-	"Stories",
-	"Tabs",
-	"Toolbar",
 	"Tooling",
-	"Top Sites",
 	"Translations",
 	"UI Tests",
 	"WebAuthn",

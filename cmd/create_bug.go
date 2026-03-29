@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -310,6 +311,16 @@ func completeBugIDs(cmd *cobra.Command, args []string, toComplete string) ([]str
 	if err != nil || len(entries) == 0 {
 		return nil, directive
 	}
+
+	// Sort: meta bugs first, then newest first.
+	sort.SliceStable(entries, func(i, j int) bool {
+		mi := strings.Contains(strings.ToLower(entries[i].Summary), "[meta]")
+		mj := strings.Contains(strings.ToLower(entries[j].Summary), "[meta]")
+		if mi != mj {
+			return mi
+		}
+		return entries[i].CreatedAt.After(entries[j].CreatedAt)
+	})
 
 	// Split on last comma to get prefix (already-typed IDs) and current fragment.
 	prefix := ""
