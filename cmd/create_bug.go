@@ -13,6 +13,7 @@ import (
 	"github.com/gabrielluong/create-bug/internal/client"
 	"github.com/gabrielluong/create-bug/internal/config"
 	"github.com/gabrielluong/create-bug/internal/history"
+	"github.com/gabrielluong/create-bug/internal/suggestions"
 	"github.com/gabrielluong/create-bug/internal/update"
 
 	"github.com/spf13/cobra"
@@ -249,6 +250,8 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 
 	cmd.RegisterFlagCompletionFunc("blocks", completeBugIDs)
 	cmd.RegisterFlagCompletionFunc("depends-on", completeBugIDs)
+	cmd.RegisterFlagCompletionFunc("whiteboard", completeWhiteboard)
+	cmd.RegisterFlagCompletionFunc("keywords", completeKeywords)
 }
 
 func mergeFlag(cmd *cobra.Command, name, flagVal, defaultVal string) string {
@@ -374,6 +377,46 @@ func completeBugIDs(cmd *cobra.Command, args []string, toComplete string) ([]str
 		if strings.HasPrefix(idStr, fragment) {
 			desc := fmt.Sprintf("Bug %d - %s [%s :: %s]", e.ID, e.Summary, e.Product, e.Component)
 			completions = append(completions, cobra.CompletionWithDesc(prefix+idStr, desc))
+		}
+	}
+	return completions, directive
+}
+
+func completeWhiteboard(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	directive := cobra.ShellCompDirectiveNoFileComp
+	var completions []string
+	for _, v := range suggestions.LoadWhiteboard() {
+		if strings.HasPrefix(strings.ToLower(v), strings.ToLower(toComplete)) {
+			completions = append(completions, v)
+		}
+	}
+	return completions, directive
+}
+
+func completeKeywords(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	directive := cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+
+	prefix := ""
+	fragment := toComplete
+	if idx := strings.LastIndex(toComplete, ","); idx >= 0 {
+		prefix = toComplete[:idx+1]
+		fragment = strings.TrimSpace(toComplete[idx+1:])
+	}
+
+	already := make(map[string]bool)
+	for _, part := range strings.Split(prefix, ",") {
+		if t := strings.TrimSpace(part); t != "" {
+			already[strings.ToLower(t)] = true
+		}
+	}
+
+	var completions []string
+	for _, kw := range suggestions.LoadKeywords() {
+		if already[strings.ToLower(kw)] {
+			continue
+		}
+		if strings.HasPrefix(strings.ToLower(kw), strings.ToLower(fragment)) {
+			completions = append(completions, cobra.CompletionWithDesc(prefix+kw, ""))
 		}
 	}
 	return completions, directive

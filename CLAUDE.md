@@ -41,7 +41,12 @@ internal/tui/
     model.go         → FormModel: all fields, focus management, submission, lifecycle states
   component/
     fuzzyselect.go   → Single-value fuzzy dropdown (wraps textinput + sahilm/fuzzy)
-    bugidinput.go    → Multi-value bug ID input with history autocomplete
+    bugidinput.go       → Multi-value bug ID input with history autocomplete
+    multistringinput.go → Multi-value string input with fuzzy dropdown (used for keywords)
+internal/suggestions/
+  suggestions.go     → LoadWhiteboard(), LoadKeywords() — embeds built-in JSON files, merges with ~/.config/create-bug/{whiteboard,keywords}.json
+  whiteboard.json    → embedded built-in whiteboard suggestions (edit and rebuild to change defaults)
+  keywords.json      → embedded built-in keyword suggestions (edit and rebuild to change defaults)
 internal/update/
   update.go          → LatestVersion(), CheckCached(), RefreshCache(), Run(), IsNewer()
 ```
@@ -60,6 +65,8 @@ internal/update/
 - Short flags: `-p` (product), `-c` (component), `-b` (blocks), `-d` (depends-on), `-w` (whiteboard), `-k` (keywords), `-H` (history).
 - Tab completion registered for `--component` flag (returns known components when `--product` is set or defaulted from config).
 - Tab completion registered for `--blocks` and `--depends-on` flags: `[meta]` bugs ranked first, then newest-first; each entry displays as `Bug {id} - {summary} [Product :: Component]`; handles comma-separated multi-value input.
+- Tab completion registered for `--whiteboard` (single value) and `--keywords` (comma-separated multi-value); both source from `suggestions.Load*()`.
+- `internal/suggestions` is the single source of truth for whiteboard/keyword lists — built-in defaults merged with user JSON files in config dir.
 - `--history` (`-H`) shows recently filed bugs; `--clear-history` removes the history file. Both short-circuit before any bug creation logic.
 - Filing history stored in `~/.config/create-bug/history.json`, capped to `historySize` (default 20, configurable in config file).
 - History silently fails on write errors (fire-and-forget) so it never blocks bug creation.
@@ -73,6 +80,8 @@ internal/update/
 - Up/Down arrows navigate between fields unless a dropdown is open or Description is focused (textarea captures arrows for line movement).
 - `component.FuzzySelect`: single-value selector. Clears input on focus to show full list; auto-confirms best match on blur; restores previous selection if user clears input without choosing.
 - `component.BugIDInput`: multi-value comma-separated input. Fuzzy-matches against current segment (text after last comma); excludes already-entered IDs; `[meta]` bugs ranked first then newest-first; selecting from dropdown appends `id, ` and re-opens for next entry.
+- `component.MultiStringInput`: same pattern as `BugIDInput` but for string suggestions (used by Keywords). Sourced from `suggestions.LoadKeywords()`.
+- Whiteboard uses `component.FuzzySelect` (single value); Keywords uses `component.MultiStringInput` (multi-value). Both source from `internal/suggestions`.
 - `bugzilla.ProductComponents` is the single source of truth for component lists — both CLI completion and TUI fuzzy selector read from it. Priority components listed first in the slice.
 - Component ordering: prioritized items (Homepage, Top Sites, Stories, Toolbar, Tabs) at top, then alphabetical.
 - History autocomplete ranking (both CLI and TUI): bugs with `[meta]` in summary first, then `CreatedAt` descending.

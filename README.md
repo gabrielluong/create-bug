@@ -108,6 +108,22 @@ Create `~/.config/create-bug/config.json`:
 
 `historySize` controls how many recently filed bugs to remember (default: 20). History is saved to `~/.config/create-bug/history.json`.
 
+### Whiteboard and keyword suggestions
+
+Built-in suggestions for `--whiteboard` and `--keywords` are defined in `internal/suggestions/whiteboard.json` and `internal/suggestions/keywords.json` and embedded into the binary at build time.
+
+To extend them with your own values, create one or both of these files:
+
+```json
+// ~/.config/create-bug/whiteboard.json
+["[my-custom-tag]", "[team-flag]"]
+
+// ~/.config/create-bug/keywords.json
+["my-keyword", "team-specific"]
+```
+
+User entries are appended after the built-ins (deduped). Omitting a file leaves the built-in list unchanged. To change the built-ins themselves, edit the JSON files in `internal/suggestions/` and rebuild.
+
 Environment variables take priority over the config file:
 
 - `BUGZILLA_API_KEY` — API key for authentication (required)
@@ -157,6 +173,8 @@ create-bug completion fish > ~/.config/fish/completions/create-bug.fish
 Tab completion is supported for:
 - `--component` — known components for the selected product
 - `--blocks` / `--depends-on` — bug IDs from your filing history, displayed as `Bug {id} - {summary} [Product :: Component]`; supports comma-separated multi-value input; `[meta]` bugs ranked first
+- `--whiteboard` — built-in and user-configured whiteboard values
+- `--keywords` — built-in and user-configured keywords; supports comma-separated multi-value input
 
 ## Updates
 

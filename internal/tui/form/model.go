@@ -15,6 +15,7 @@ import (
 	"github.com/gabrielluong/create-bug/internal/client"
 	"github.com/gabrielluong/create-bug/internal/config"
 	"github.com/gabrielluong/create-bug/internal/history"
+	"github.com/gabrielluong/create-bug/internal/suggestions"
 	"github.com/gabrielluong/create-bug/internal/tui/component"
 )
 
@@ -60,8 +61,8 @@ type Model struct {
 	description textarea.Model
 	blocks      component.BugIDInput
 	dependsOn   component.BugIDInput
-	whiteboard  textinput.Model
-	keywords    textinput.Model
+	whiteboard  component.FuzzySelect
+	keywords    component.MultiStringInput
 	spinner     spinner.Model
 
 	result *client.CreateBugResult
@@ -96,13 +97,8 @@ func New(cfg *config.Config) Model {
 	bl := component.NewBugIDInput("Bug IDs this blocks (e.g. 123, 456)...", entries)
 	dep := component.NewBugIDInput("Bug IDs this depends on (e.g. 123, 456)...", entries)
 
-	wb := textinput.New()
-	wb.Placeholder = "e.g. [checkin-needed]"
-	wb.CharLimit = 256
-
-	kw := textinput.New()
-	kw.Placeholder = "e.g. regression, crash (comma-separated)"
-	kw.CharLimit = 256
+	wb := component.NewFuzzySelect("e.g. [checkin-needed]", suggestions.LoadWhiteboard())
+	kw := component.NewMultiStringInput("e.g. regression, crash (comma-separated)", suggestions.LoadKeywords())
 
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
@@ -133,8 +129,6 @@ func (m *Model) SetSize(width, height int) {
 	}
 	m.summary.Width = contentWidth
 	m.description.SetWidth(contentWidth)
-	m.whiteboard.Width = contentWidth
-	m.keywords.Width = contentWidth
 }
 
 func (m Model) Init() tea.Cmd {
@@ -257,6 +251,7 @@ func (m Model) updateChildren(msg tea.Msg) (Model, tea.Cmd) {
 		m.keywords, cmd = m.keywords.Update(msg)
 		cmds = append(cmds, cmd)
 	}
+
 	if m.state == stateSubmitting {
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
@@ -278,6 +273,10 @@ func (m *Model) fieldCapturesVertical() bool {
 		return m.blocks.IsOpen()
 	case zoneDependsOn:
 		return m.dependsOn.IsOpen()
+	case zoneWhiteboard:
+		return m.whiteboard.IsOpen()
+	case zoneKeywords:
+		return m.keywords.IsOpen()
 	}
 	return false
 }
@@ -327,6 +326,7 @@ func (m *Model) setFocus(zone focusZone) {
 	} else {
 		m.keywords.Blur()
 	}
+
 }
 
 func (m Model) submit() (Model, tea.Cmd) {
@@ -399,8 +399,8 @@ func (m Model) submit() (Model, tea.Cmd) {
 		OpSys:       opSys,
 		Blocks:     m.blocks.IDs(),
 		DependsOn:  m.dependsOn.IDs(),
-		Whiteboard: strings.TrimSpace(m.whiteboard.Value()),
-		Keywords:   splitKeywords(m.keywords.Value()),
+		Whiteboard: m.whiteboard.Value(),
+		Keywords:   m.keywords.Values(),
 	}
 
 	cfg := m.cfg
@@ -433,6 +433,7 @@ func (m *Model) resetForNextBug() {
 	m.description.SetValue("")
 	m.whiteboard.SetValue("")
 	m.keywords.SetValue("")
+
 	// Component is intentionally preserved for multi-bug filing.
 	// Reload history so newly filed bugs appear in autocomplete.
 	entries, _ := history.Load()
@@ -444,15 +445,6 @@ func (m *Model) resetForNextBug() {
 	m.setFocus(zoneSummary)
 }
 
-func splitKeywords(s string) []string {
-	var out []string
-	for _, p := range strings.Split(s, ",") {
-		if t := strings.TrimSpace(p); t != "" {
-			out = append(out, t)
-		}
-	}
-	return out
-}
 
 // View renders the form.
 func (m Model) View() string {
