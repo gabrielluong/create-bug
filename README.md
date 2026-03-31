@@ -34,6 +34,8 @@ create-bug-tui
 | Description | Inline textarea; supports multi-line editing |
 | Blocks | Comma-separated bug IDs; autocomplete from filing history |
 | Depends on | Comma-separated bug IDs; autocomplete from filing history |
+| Whiteboard | Free-text whiteboard value |
+| Keywords | Comma-separated keywords |
 
 ### Navigation
 
@@ -131,6 +133,8 @@ Environment variables take priority over the config file:
 | `--depends-on` | `-d` | Comma-separated bug IDs this depends on |
 | `--alias` | | Short alias |
 | `--status` | | Initial status |
+| `--whiteboard` | `-w` | Whiteboard field value |
+| `--keywords` | `-k` | Comma-separated keywords |
 | `--json` | | Output raw JSON (`id`, `url`, `summary`) |
 | `--dry-run` | | Print resolved params as JSON without filing |
 | `--history` | `-H` | Show recently filed bugs |

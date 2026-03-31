@@ -27,6 +27,8 @@ const (
 	zoneDescription
 	zoneBlocks
 	zoneDependsOn
+	zoneWhiteboard
+	zoneKeywords
 	zoneSubmit
 	zoneCount // sentinel
 )
@@ -58,6 +60,8 @@ type Model struct {
 	description textarea.Model
 	blocks      component.BugIDInput
 	dependsOn   component.BugIDInput
+	whiteboard  textinput.Model
+	keywords    textinput.Model
 	spinner     spinner.Model
 
 	result *client.CreateBugResult
@@ -92,6 +96,14 @@ func New(cfg *config.Config) Model {
 	bl := component.NewBugIDInput("Bug IDs this blocks (e.g. 123, 456)...", entries)
 	dep := component.NewBugIDInput("Bug IDs this depends on (e.g. 123, 456)...", entries)
 
+	wb := textinput.New()
+	wb.Placeholder = "e.g. [checkin-needed]"
+	wb.CharLimit = 256
+
+	kw := textinput.New()
+	kw.Placeholder = "e.g. regression, crash (comma-separated)"
+	kw.CharLimit = 256
+
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
 
@@ -104,6 +116,8 @@ func New(cfg *config.Config) Model {
 		description: ta,
 		blocks:      bl,
 		dependsOn:   dep,
+		whiteboard:  wb,
+		keywords:    kw,
 		spinner:     sp,
 	}
 }
@@ -119,6 +133,8 @@ func (m *Model) SetSize(width, height int) {
 	}
 	m.summary.Width = contentWidth
 	m.description.SetWidth(contentWidth)
+	m.whiteboard.Width = contentWidth
+	m.keywords.Width = contentWidth
 }
 
 func (m Model) Init() tea.Cmd {
@@ -231,6 +247,16 @@ func (m Model) updateChildren(msg tea.Msg) (Model, tea.Cmd) {
 		m.dependsOn, cmd = m.dependsOn.Update(msg)
 		cmds = append(cmds, cmd)
 	}
+	if m.focus == zoneWhiteboard {
+		var cmd tea.Cmd
+		m.whiteboard, cmd = m.whiteboard.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+	if m.focus == zoneKeywords {
+		var cmd tea.Cmd
+		m.keywords, cmd = m.keywords.Update(msg)
+		cmds = append(cmds, cmd)
+	}
 	if m.state == stateSubmitting {
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
@@ -290,6 +316,16 @@ func (m *Model) setFocus(zone focusZone) {
 		m.dependsOn.Focus()
 	} else {
 		m.dependsOn.Blur()
+	}
+	if zone == zoneWhiteboard {
+		m.whiteboard.Focus()
+	} else {
+		m.whiteboard.Blur()
+	}
+	if zone == zoneKeywords {
+		m.keywords.Focus()
+	} else {
+		m.keywords.Blur()
 	}
 }
 
@@ -361,8 +397,10 @@ func (m Model) submit() (Model, tea.Cmd) {
 		Severity:    severity,
 		Platform:    platform,
 		OpSys:       opSys,
-		Blocks:      m.blocks.IDs(),
-		DependsOn:   m.dependsOn.IDs(),
+		Blocks:     m.blocks.IDs(),
+		DependsOn:  m.dependsOn.IDs(),
+		Whiteboard: strings.TrimSpace(m.whiteboard.Value()),
+		Keywords:   splitKeywords(m.keywords.Value()),
 	}
 
 	cfg := m.cfg
@@ -393,6 +431,8 @@ func (m Model) submit() (Model, tea.Cmd) {
 func (m *Model) resetForNextBug() {
 	m.summary.SetValue("")
 	m.description.SetValue("")
+	m.whiteboard.SetValue("")
+	m.keywords.SetValue("")
 	// Component is intentionally preserved for multi-bug filing.
 	// Reload history so newly filed bugs appear in autocomplete.
 	entries, _ := history.Load()
@@ -402,6 +442,16 @@ func (m *Model) resetForNextBug() {
 	m.result = nil
 	m.err = nil
 	m.setFocus(zoneSummary)
+}
+
+func splitKeywords(s string) []string {
+	var out []string
+	for _, p := range strings.Split(s, ",") {
+		if t := strings.TrimSpace(p); t != "" {
+			out = append(out, t)
+		}
+	}
+	return out
 }
 
 // View renders the form.
@@ -439,6 +489,8 @@ func (m Model) View() string {
 	b.WriteString(m.renderField("Description", m.description.View(), m.focus == zoneDescription))
 	b.WriteString(m.renderField("Blocks", m.blocks.View(), m.focus == zoneBlocks))
 	b.WriteString(m.renderField("Depends on", m.dependsOn.View(), m.focus == zoneDependsOn))
+	b.WriteString(m.renderField("Whiteboard", m.whiteboard.View(), m.focus == zoneWhiteboard))
+	b.WriteString(m.renderField("Keywords", m.keywords.View(), m.focus == zoneKeywords))
 
 	// Secondary field defaults as pill badges.
 	defaults := m.cfg.Defaults

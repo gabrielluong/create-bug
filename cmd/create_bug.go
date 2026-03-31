@@ -36,6 +36,8 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 		dependsOn   string
 		alias       string
 		status      string
+		whiteboard  string
+		keywords    string
 		jsonFlag         bool
 		dryRunFlag       bool
 		historyFlag      bool
@@ -157,6 +159,12 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 			}
 			params.DependsOn = ids
 		}
+		if cmd.Flags().Changed("whiteboard") {
+			params.Whiteboard = whiteboard
+		}
+		if cmd.Flags().Changed("keywords") {
+			params.Keywords = splitTrimmed(keywords)
+		}
 
 		if dryRunFlag {
 			out, err := json.MarshalIndent(struct {
@@ -220,6 +228,8 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&dependsOn, "depends-on", "d", "", "comma-separated bug IDs that this bug depends on")
 	cmd.Flags().StringVar(&alias, "alias", "", "short alias for the bug")
 	cmd.Flags().StringVar(&status, "status", "", "initial status (default: UNCONFIRMED or NEW)")
+	cmd.Flags().StringVarP(&whiteboard, "whiteboard", "w", "", "whiteboard field value")
+	cmd.Flags().StringVarP(&keywords, "keywords", "k", "", "comma-separated keywords")
 	cmd.Flags().BoolVar(&jsonFlag, "json", false, "output raw JSON (for Claude integration)")
 	cmd.Flags().BoolVar(&dryRunFlag, "dry-run", false, "print resolved params without filing the bug")
 	cmd.Flags().BoolVarP(&historyFlag, "history", "H", false, "show recently filed bugs")

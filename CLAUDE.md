@@ -57,7 +57,7 @@ internal/update/
 - Requires `config.APIKey`; exit early if empty before any network call.
 - Use `cmd.Flags().Changed("flag")` to distinguish "not passed" from "passed empty" when merging with config defaults.
 - `--component` (`-c`) supports fuzzy matching via `sahilm/fuzzy` for known products. Unknown products pass through for API validation.
-- Short flags: `-p` (product), `-c` (component), `-b` (blocks), `-d` (depends-on), `-H` (history).
+- Short flags: `-p` (product), `-c` (component), `-b` (blocks), `-d` (depends-on), `-w` (whiteboard), `-k` (keywords), `-H` (history).
 - Tab completion registered for `--component` flag (returns known components when `--product` is set or defaulted from config).
 - Tab completion registered for `--blocks` and `--depends-on` flags: `[meta]` bugs ranked first, then newest-first; each entry displays as `Bug {id} - {summary} [Product :: Component]`; handles comma-separated multi-value input.
 - `--history` (`-H`) shows recently filed bugs; `--clear-history` removes the history file. Both short-circuit before any bug creation logic.
@@ -69,7 +69,7 @@ internal/update/
 - `--update` fetches latest version synchronously and runs `go install github.com/gabrielluong/create-bug@latest` if outdated.
 
 **Key conventions — TUI:**
-- `internal/tui/form/model.go` owns all form state and submission. Focus zones: Summary → Component → Description → Blocks → Depends on → Submit.
+- `internal/tui/form/model.go` owns all form state and submission. Focus zones: Summary → Component → Description → Blocks → Depends on → Whiteboard → Keywords → Submit.
 - Up/Down arrows navigate between fields unless a dropdown is open or Description is focused (textarea captures arrows for line movement).
 - `component.FuzzySelect`: single-value selector. Clears input on focus to show full list; auto-confirms best match on blur; restores previous selection if user clears input without choosing.
 - `component.BugIDInput`: multi-value comma-separated input. Fuzzy-matches against current segment (text after last comma); excludes already-entered IDs; `[meta]` bugs ranked first then newest-first; selecting from dropdown appends `id, ` and re-opens for next entry.

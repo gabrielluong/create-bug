@@ -26,6 +26,8 @@ type CreateBugParams struct {
 	Status      string   `json:"status,omitempty"`
 	Blocks      []int    `json:"blocks,omitempty"`
 	DependsOn   []int    `json:"depends_on,omitempty"`
+	Whiteboard  string   `json:"whiteboard,omitempty"`
+	Keywords    []string `json:"keywords,omitempty"`
 }
 
 type CreateBugResult struct {
