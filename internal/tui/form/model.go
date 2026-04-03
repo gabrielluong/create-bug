@@ -50,6 +50,25 @@ type submitResultMsg struct {
 	err    error
 }
 
+// componentsFetchedMsg is sent when the async component fetch completes.
+type componentsFetchedMsg struct {
+	components []string
+	err        error
+}
+
+func fetchComponentsCmd(cfg *config.Config, product string) tea.Cmd {
+	return func() tea.Msg {
+		if components, ok := bugzilla.GetCachedComponents(product); ok {
+			return componentsFetchedMsg{components: components}
+		}
+		if err := bugzilla.EnsureComponents(cfg, product); err != nil {
+			return componentsFetchedMsg{err: err}
+		}
+		components, _ := bugzilla.GetCachedComponents(product)
+		return componentsFetchedMsg{components: components}
+	}
+}
+
 // Model is the Bubbletea model for the bug creation form.
 type Model struct {
 	cfg   *config.Config
@@ -79,10 +98,8 @@ func New(cfg *config.Config) Model {
 	ti.CharLimit = 256
 	ti.Focus()
 
-	// Build component selector from known product components.
-	product := cfg.Defaults.Product
-	items := bugzilla.ProductComponents[product]
-	cs := component.NewFuzzySelect("Select component...", items)
+	// Start with an empty component selector; Init() will dispatch a fetch.
+	cs := component.NewFuzzySelect("Loading components...", nil)
 	if cfg.Defaults.Component != "" {
 		cs.SetValue(cfg.Defaults.Component)
 	}
@@ -132,11 +149,29 @@ func (m *Model) SetSize(width, height int) {
 }
 
 func (m Model) Init() tea.Cmd {
-	return textinput.Blink
+	product := m.cfg.Defaults.Product
+	if product == "" {
+		return textinput.Blink
+	}
+	return tea.Batch(textinput.Blink, fetchComponentsCmd(m.cfg, product))
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case componentsFetchedMsg:
+		if msg.err != nil {
+			m.component = component.NewFuzzySelect("Component (type manually)...", nil)
+		} else {
+			existing := m.component.Value()
+			m.component = component.NewFuzzySelect("Select component...", msg.components)
+			if existing != "" {
+				m.component.SetValue(existing)
+			} else if m.cfg.Defaults.Component != "" {
+				m.component.SetValue(m.cfg.Defaults.Component)
+			}
+		}
+		return m, nil
+
 	case submitResultMsg:
 		if msg.err != nil {
 			m.state = stateError

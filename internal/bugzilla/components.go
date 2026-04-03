@@ -8,56 +8,11 @@ import (
 	"github.com/sahilm/fuzzy"
 )
 
-var fenixComponents = []string{
-	// Prioritized components.
-	"Homepage",
-	"Top Sites",
-	"Stories",
-	"Toolbar",
-	"Tabs",
-	// Alphabetical.
-	"Accounts and Sync",
-	"App Links",
-	"Autofill",
-	"Bookmarks",
-	"Browser Engine",
-	"Collections",
-	"Crash Reporting",
-	"Design System and Theming",
-	"Downloads",
-	"Experimentation and Telemetry",
-	"General",
-	"History",
-	"L10N",
-	"Logins",
-	"Media",
-	"Onboarding",
-	"Performance",
-	"Privacy",
-	"Push",
-	"PWA",
-	"QR",
-	"Reader Mode",
-	"Search",
-	"Settings",
-	"Share",
-	"Tooling",
-	"Translations",
-	"UI Tests",
-	"WebAuthn",
-	"WebExtensions",
-}
-
-// ProductComponents maps known product names to their component lists.
-var ProductComponents = map[string][]string{
-	"Firefox for Android": fenixComponents,
-}
-
-// ResolveComponent fuzzy-matches the input against the known component list
-// for the given product. If the product is not in the known map, the input
-// is returned as-is for the API to validate.
+// ResolveComponent fuzzy-matches the input against the cached component list
+// for the given product. If the product is not in the cache, the input is
+// returned as-is for the API to validate.
 func ResolveComponent(product, input string) (string, error) {
-	components, known := ProductComponents[product]
+	components, known := GetCachedComponents(product)
 	if !known {
 		return input, nil
 	}

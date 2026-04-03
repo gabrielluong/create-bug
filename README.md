@@ -5,16 +5,16 @@ A CLI tool and interactive TUI for creating bugs on [Bugzilla](https://www.bugzi
 ## Install
 
 ```sh
-go install github.com/gabrielluong/create-bug@latest
+go install github.com/gabrielluong/create-bug/...@latest
 ```
 
-Both binaries are included. Build from source:
+Build from source:
 
 ```sh
 git clone https://github.com/gabrielluong/create-bug.git
 cd create-bug
-go build -o create-bug .            # CLI
-go build -o create-bug-tui ./cmd/tui/  # TUI
+go build -o create-bug .                      # CLI
+go build -o create-bug-tui ./cmd/create-bug-tui/  # TUI
 ```
 
 ## TUI
@@ -181,7 +181,7 @@ Tab completion is supported for:
 The tool checks for new versions once per 24 hours in the background and prints a notice to stderr after any command if a newer version is available:
 
 ```
-A new version (v0.5.0) is available. Run: go install github.com/gabrielluong/create-bug@latest
+A new version (v0.5.0) is available. Run: go install github.com/gabrielluong/create-bug/...@latest
 ```
 
 To update immediately:

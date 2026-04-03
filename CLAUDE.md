@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```sh
 go build -o create-bug .              # compile CLI → ./create-bug
-go build -o create-bug-tui ./cmd/tui/ # compile TUI → ./create-bug-tui
-go run .                              # run CLI without building
-go run ./cmd/tui/                     # run TUI without building
+go build -o create-bug-tui ./cmd/create-bug-tui/ # compile TUI → ./create-bug-tui
+go run .                                         # run CLI without building
+go run ./cmd/create-bug-tui/                     # run TUI without building
 ```
 
 No test runner is configured yet.
@@ -22,13 +22,14 @@ main.go              → calls cmd.Execute() (CLI entry point)
 cmd/
   root.go            → root cobra command (is the create-bug command itself)
   create_bug.go      → flag parsing, default merging, fuzzy resolution, output, history display
-  tui/
+  create-bug-tui/
     main.go          → TUI entry point: loads config, starts tea.NewProgram with alt screen
 internal/bugzilla/
   create_bug.go      → CreateBug() business logic entry point
-  components.go      → hardcoded component lists (known products) + fuzzy resolution
+  components.go      → fuzzy resolution against cached component list
+  componentcache.go  → GetCachedComponents(), SetCachedComponents(), EnsureComponents() — persistent cache at ~/.config/create-bug/components.json
 internal/client/
-  client.go          → HTTP transport: Client, CreateBugParams, error codes
+  client.go          → HTTP transport: Client, CreateBugParams, GetProductComponents(), error codes
 internal/config/
   config.go          → Config, BugDefaults, Load() (env > file > defaults), ConfigDir()
 internal/history/
@@ -61,9 +62,10 @@ internal/update/
 - Bugzilla returns `{ "error": true, "code": N, "message": "..." }` — check this **before** HTTP status.
 - Requires `config.APIKey`; exit early if empty before any network call.
 - Use `cmd.Flags().Changed("flag")` to distinguish "not passed" from "passed empty" when merging with config defaults.
-- `--component` (`-c`) supports fuzzy matching via `sahilm/fuzzy` for known products. Unknown products pass through for API validation.
+- `--component` (`-c`) supports fuzzy matching via `sahilm/fuzzy` against the cached component list for the product. `EnsureComponents()` is called before `ResolveComponent()` to populate the cache on first use. Unknown products (not in cache) pass through for API validation.
+- Component list is fetched live from the Bugzilla API (`GET /rest/product?names=…`) and cached at `~/.config/create-bug/components.json`. The cache persists across invocations; there is no TTL — it is populated on first use and reused thereafter.
 - Short flags: `-p` (product), `-c` (component), `-b` (blocks), `-d` (depends-on), `-w` (whiteboard), `-k` (keywords), `-H` (history).
-- Tab completion registered for `--component` flag (returns known components when `--product` is set or defaulted from config).
+- Tab completion registered for `--component` flag: reads from the component cache via `GetCachedComponents()` when `--product` is set or defaulted from config. Returns no completions if the product is not yet cached.
 - Tab completion registered for `--blocks` and `--depends-on` flags: `[meta]` bugs ranked first, then newest-first; each entry displays as `Bug {id} - {summary} [Product :: Component]`; handles comma-separated multi-value input.
 - Tab completion registered for `--whiteboard` (single value) and `--keywords` (comma-separated multi-value); both source from `suggestions.Load*()`.
 - `internal/suggestions` is the single source of truth for whiteboard/keyword lists — built-in defaults merged with user JSON files in config dir.
@@ -73,7 +75,7 @@ internal/update/
 - Version is a package-level constant in `cmd/root.go` (`const version`), used by both cobra and the update checker.
 - `PersistentPreRun` reads the update cache (fast, local file) and spawns `update.RefreshCache()` as a goroutine (async, non-blocking). `PersistentPostRun` prints the update notice to stderr if one was set.
 - Update cache stored in `~/.config/create-bug/update_check.json`; refreshed at most once per 24h. Version source: GitHub tags API.
-- `--update` fetches latest version synchronously and runs `go install github.com/gabrielluong/create-bug@latest` if outdated.
+- `--update` fetches latest version synchronously and runs `go install github.com/gabrielluong/create-bug@latest` if outdated. Note: this installs only the CLI; to also update the TUI run `go install github.com/gabrielluong/create-bug/...@latest`.
 
 **Key conventions — TUI:**
 - `internal/tui/form/model.go` owns all form state and submission. Focus zones: Summary → Component → Description → Blocks → Depends on → Whiteboard → Keywords → Submit.
@@ -82,8 +84,8 @@ internal/update/
 - `component.BugIDInput`: multi-value comma-separated input. Fuzzy-matches against current segment (text after last comma); excludes already-entered IDs; `[meta]` bugs ranked first then newest-first; selecting from dropdown appends `id, ` and re-opens for next entry.
 - `component.MultiStringInput`: same pattern as `BugIDInput` but for string suggestions (used by Keywords). Sourced from `suggestions.LoadKeywords()`.
 - Whiteboard uses `component.FuzzySelect` (single value); Keywords uses `component.MultiStringInput` (multi-value). Both source from `internal/suggestions`.
-- `bugzilla.ProductComponents` is the single source of truth for component lists — both CLI completion and TUI fuzzy selector read from it. Priority components listed first in the slice.
-- Component ordering: prioritized items (Homepage, Top Sites, Stories, Toolbar, Tabs) at top, then alphabetical.
+- Component selector is populated asynchronously: `Init()` dispatches `fetchComponentsCmd` which checks the cache first and falls back to the Bugzilla API via `EnsureComponents()`. A `componentsFetchedMsg` is received in `Update()` to swap in the populated selector. If fetch fails, the selector falls back to free-text input.
+- `bugzilla.GetCachedComponents()` is the single source of truth for component lists at runtime — both CLI completion and TUI fuzzy selector read from it. Components are sorted alphabetically (as returned by the API).
 - History autocomplete ranking (both CLI and TUI): bugs with `[meta]` in summary first, then `CreatedAt` descending.
 - On successful submit, history is appended immediately so the new bug appears in Blocks/Depends on autocomplete when filing another.
 - TUI uses hex colors (`#7C3AED` violet family, `#1E293B` slate surfaces) — keep the palette in `internal/tui/theme.go`.

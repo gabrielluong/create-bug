@@ -111,6 +111,10 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 			}
 		}
 
+		if err := bugzilla.EnsureComponents(cfg, resolvedProduct); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: could not fetch components: %s\n", err)
+		}
+
 		resolvedComponent, err := bugzilla.ResolveComponent(resolvedProduct, resolvedComponent)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
@@ -242,10 +246,8 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 		if product == "" {
 			product = config.Load().Defaults.Product
 		}
-		if components, ok := bugzilla.ProductComponents[product]; ok {
-			return components, cobra.ShellCompDirectiveNoFileComp
-		}
-		return nil, cobra.ShellCompDirectiveNoFileComp
+		components, _ := bugzilla.GetCachedComponents(product)
+		return components, cobra.ShellCompDirectiveNoFileComp
 	})
 
 	cmd.RegisterFlagCompletionFunc("blocks", completeBugIDs)

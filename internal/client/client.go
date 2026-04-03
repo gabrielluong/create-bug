@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"sort"
 	"strings"
 )
 
@@ -93,6 +95,65 @@ func (c *Client) checkError(body []byte) error {
 		msg = mapped
 	}
 	return fmt.Errorf("Bugzilla error (%d): %s", errResp.Code, msg)
+}
+
+type productComponentsResponse struct {
+	Products []productEntry `json:"products"`
+}
+
+type productEntry struct {
+	Name       string           `json:"name"`
+	Components []componentEntry `json:"components"`
+}
+
+type componentEntry struct {
+	Name     string `json:"name"`
+	IsActive bool   `json:"is_active"`
+}
+
+// GetProductComponents returns the sorted list of active component names for
+// the given product by calling the Bugzilla REST API.
+func (c *Client) GetProductComponents(product string) ([]string, error) {
+	u := fmt.Sprintf("%s/rest/product?names=%s&include_fields=name,components",
+		c.baseURL, url.QueryEscape(product))
+
+	req, err := c.buildRequest("GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.checkError(body); err != nil {
+		return nil, err
+	}
+
+	var result productComponentsResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, err
+	}
+
+	if len(result.Products) == 0 {
+		return nil, fmt.Errorf("product %q not found", product)
+	}
+
+	var names []string
+	for _, comp := range result.Products[0].Components {
+		if comp.IsActive {
+			names = append(names, comp.Name)
+		}
+	}
+	sort.Strings(names)
+	return names, nil
 }
 
 func (c *Client) CreateBug(params CreateBugParams) (*CreateBugResult, error) {
