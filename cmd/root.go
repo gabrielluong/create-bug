@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.6.0"
+const version = "0.7.0"
 
 var updateNotice string
 
@@ -18,7 +18,7 @@ var rootCmd = &cobra.Command{
 	Version: version,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if latest, outdated := update.CheckCached(version); outdated {
-			updateNotice = fmt.Sprintf("A new version (%s) is available. Run: go install github.com/gabrielluong/create-bug@latest", latest)
+			updateNotice = fmt.Sprintf("A new version (%s) is available. Run: go install github.com/gabrielluong/create-bug/...@latest", latest)
 		}
 		go update.RefreshCache()
 	},
