@@ -70,7 +70,7 @@ internal/update/
 - Tab completion registered for `--whiteboard` (single value) and `--keywords` (comma-separated multi-value); both source from `suggestions.Load*()`.
 - `internal/suggestions` is the single source of truth for whiteboard/keyword lists — built-in defaults merged with user JSON files in config dir.
 - `--history` (`-H`) shows recently filed bugs; `--clear-history` removes the history file. Both short-circuit before any bug creation logic.
-- Filing history stored in `~/.config/create-bug/history.json`, capped to `historySize` (default 20, configurable in config file).
+- Filing history stored in `~/.config/create-bug/history.json`, capped to `historySize` (default 200, configurable in config file).
 - History silently fails on write errors (fire-and-forget) so it never blocks bug creation.
 - Version is a package-level constant in `cmd/root.go` (`const version`), used by both cobra and the update checker.
 - `PersistentPreRun` reads the update cache (fast, local file) and spawns `update.RefreshCache()` as a goroutine (async, non-blocking). `PersistentPostRun` prints the update notice to stderr if one was set.
@@ -113,7 +113,7 @@ Set `BUGZILLA_API_KEY` (and optionally `BUGZILLA_URL`) as environment variables,
 {
   "apiKey": "your-key",
   "baseUrl": "https://your-bugzilla-instance.example.com",
-  "historySize": 20,
+  "historySize": 200,
   "defaults": {
     "product": "Product",
     "component": "General",

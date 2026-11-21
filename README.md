@@ -92,7 +92,7 @@ Create `~/.config/create-bug/config.json`:
 {
   "apiKey": "your-bugzilla-api-key",
   "baseUrl": "https://your-bugzilla-instance.example.com",
-  "historySize": 20,
+  "historySize": 200,
   "defaults": {
     "product": "Product",
     "component": "General",
@@ -106,7 +106,7 @@ Create `~/.config/create-bug/config.json`:
 }
 ```
 
-`historySize` controls how many recently filed bugs to remember (default: 20). History is saved to `~/.config/create-bug/history.json`.
+`historySize` controls how many recently filed bugs to remember (default: 200). History is saved to `~/.config/create-bug/history.json`.
 
 ### Whiteboard and keyword suggestions
 

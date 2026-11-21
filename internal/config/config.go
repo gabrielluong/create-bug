@@ -31,7 +31,7 @@ type configFile struct {
 	HistorySize *int        `json:"historySize,omitempty"`
 }
 
-const DefaultHistorySize = 20
+const DefaultHistorySize = 200
 
 // ConfigDir returns the path to the config directory (~/.config/create-bug).
 func ConfigDir() string {
