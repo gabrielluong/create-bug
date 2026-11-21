@@ -23,7 +23,12 @@ type FuzzySelect struct {
 	prevSelected string
 	open         bool
 	focused      bool
+	allowCustom  bool
 }
+
+// customIndex marks a match entry that represents the user's raw input
+// rather than one of the predefined items.
+const customIndex = -1
 
 // NewFuzzySelect creates a new fuzzy select with the given items.
 func NewFuzzySelect(placeholder string, items []string) FuzzySelect {
@@ -37,6 +42,14 @@ func NewFuzzySelect(placeholder string, items []string) FuzzySelect {
 	}
 	fs.filter()
 	return fs
+}
+
+// SetAllowCustom enables accepting values that aren't in the item list.
+// When enabled, the typed text is offered as the first dropdown entry
+// (unless it exactly matches an item), so Enter or blurring keeps it as-is.
+func (f *FuzzySelect) SetAllowCustom(allow bool) {
+	f.allowCustom = allow
+	f.filter()
 }
 
 // Value returns the confirmed selection, or the raw input if no selection.
@@ -166,6 +179,9 @@ func (f *FuzzySelect) filter() {
 		}
 	} else {
 		f.matches = fuzzy.Find(query, f.items)
+		if f.allowCustom && !containsExact(f.items, query) {
+			f.matches = append([]fuzzy.Match{{Str: query, Index: customIndex}}, f.matches...)
+		}
 	}
 	f.cursor = 0
 }
@@ -199,10 +215,14 @@ func (f FuzzySelect) View() string {
 
 	for i := start; i < end; i++ {
 		m := f.matches[i]
+		label := highlightMatch(m)
+		if m.Index == customIndex {
+			label = m.Str + scrollHintStyle.Render(" (custom)")
+		}
 		if i == f.cursor {
-			b.WriteString(cursorStyle.Render("▸ ") + selectedItemStyle.Render(highlightMatch(m)))
+			b.WriteString(cursorStyle.Render("▸ ") + selectedItemStyle.Render(label))
 		} else {
-			b.WriteString(itemStyle.Render("  " + highlightMatch(m)))
+			b.WriteString(itemStyle.Render("  " + label))
 		}
 		if i < end-1 {
 			b.WriteString("\n")
@@ -215,6 +235,15 @@ func (f FuzzySelect) View() string {
 	}
 
 	return b.String()
+}
+
+func containsExact(items []string, s string) bool {
+	for _, item := range items {
+		if item == s {
+			return true
+		}
+	}
+	return false
 }
 
 // visibleWindow computes the start/end indices for a scrolling window.

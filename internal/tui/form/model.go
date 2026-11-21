@@ -115,6 +115,7 @@ func New(cfg *config.Config) Model {
 	dep := component.NewBugIDInput("Bug IDs this depends on (e.g. 123, 456)...", entries)
 
 	wb := component.NewFuzzySelect("e.g. [checkin-needed]", suggestions.LoadWhiteboard())
+	wb.SetAllowCustom(true)
 	kw := component.NewMultiStringInput("e.g. regression, crash (comma-separated)", suggestions.LoadKeywords())
 
 	sp := spinner.New()

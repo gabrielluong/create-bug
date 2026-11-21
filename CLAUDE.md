@@ -83,7 +83,7 @@ internal/update/
 - `component.FuzzySelect`: single-value selector. Clears input on focus to show full list; auto-confirms best match on blur; restores previous selection if user clears input without choosing.
 - `component.BugIDInput`: multi-value comma-separated input. Fuzzy-matches against current segment (text after last comma); excludes already-entered IDs; `[meta]` bugs ranked first then newest-first; selecting from dropdown appends `id, ` and re-opens for next entry.
 - `component.MultiStringInput`: same pattern as `BugIDInput` but for string suggestions (used by Keywords). Sourced from `suggestions.LoadKeywords()`.
-- Whiteboard uses `component.FuzzySelect` (single value); Keywords uses `component.MultiStringInput` (multi-value). Both source from `internal/suggestions`.
+- Whiteboard uses `component.FuzzySelect` (single value) with `SetAllowCustom(true)` — typed text is offered as the first "(custom)" dropdown entry so non-predefined values are accepted; Keywords uses `component.MultiStringInput` (multi-value). Both source from `internal/suggestions`.
 - Component selector is populated asynchronously: `Init()` dispatches `fetchComponentsCmd` which checks the cache first and falls back to the Bugzilla API via `EnsureComponents()`. A `componentsFetchedMsg` is received in `Update()` to swap in the populated selector. If fetch fails, the selector falls back to free-text input.
 - `bugzilla.GetCachedComponents()` is the single source of truth for component lists at runtime — both CLI completion and TUI fuzzy selector read from it. Components are sorted alphabetically (as returned by the API).
 - History autocomplete ranking (both CLI and TUI): bugs with `[meta]` in summary first, then `CreatedAt` descending.
