@@ -39,6 +39,9 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 		status      string
 		whiteboard  string
 		keywords    string
+		regressedBy string
+		seeAlso     string
+		bugURL      string
 		jsonFlag         bool
 		dryRunFlag       bool
 		historyFlag      bool
@@ -170,6 +173,20 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 		if cmd.Flags().Changed("keywords") {
 			params.Keywords = splitTrimmed(keywords)
 		}
+		if cmd.Flags().Changed("regressed-by") {
+			ids, err := splitInts(regressedBy)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: invalid --regressed-by value: %s\n", err)
+				return err
+			}
+			params.RegressedBy = ids
+		}
+		if cmd.Flags().Changed("see-also") {
+			params.SeeAlso = bugzilla.NormalizeSeeAlso(cfg.BaseURL, splitTrimmed(seeAlso))
+		}
+		if cmd.Flags().Changed("url") {
+			params.URL = strings.TrimSpace(bugURL)
+		}
 
 		if dryRunFlag {
 			out, err := json.MarshalIndent(struct {
@@ -188,6 +205,9 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 			return err
+		}
+		if result.Warning != "" {
+			fmt.Fprintf(os.Stderr, "Warning: %s\n", result.Warning)
 		}
 
 		bugURL := fmt.Sprintf("%s/show_bug.cgi?id=%d", cfg.BaseURL, result.ID)
@@ -235,6 +255,9 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&status, "status", "", "initial status (default: UNCONFIRMED or NEW)")
 	cmd.Flags().StringVarP(&whiteboard, "whiteboard", "w", "", "whiteboard field value")
 	cmd.Flags().StringVarP(&keywords, "keywords", "k", "", "comma-separated keywords")
+	cmd.Flags().StringVar(&regressedBy, "regressed-by", "", "comma-separated bug IDs that caused this regression")
+	cmd.Flags().StringVar(&seeAlso, "see-also", "", "comma-separated See Also URLs or bug IDs (bare IDs become links on this Bugzilla)")
+	cmd.Flags().StringVar(&bugURL, "url", "", "URL field value (e.g. a page that demonstrates the problem)")
 	cmd.Flags().BoolVar(&jsonFlag, "json", false, "output raw JSON (for Claude integration)")
 	cmd.Flags().BoolVar(&dryRunFlag, "dry-run", false, "print resolved params without filing the bug")
 	cmd.Flags().BoolVarP(&historyFlag, "history", "H", false, "show recently filed bugs")
@@ -252,6 +275,7 @@ func setupCreateBugCmd(cmd *cobra.Command) {
 
 	cmd.RegisterFlagCompletionFunc("blocks", completeBugIDs)
 	cmd.RegisterFlagCompletionFunc("depends-on", completeBugIDs)
+	cmd.RegisterFlagCompletionFunc("regressed-by", completeBugIDs)
 	cmd.RegisterFlagCompletionFunc("whiteboard", completeWhiteboard)
 	cmd.RegisterFlagCompletionFunc("keywords", completeKeywords)
 }

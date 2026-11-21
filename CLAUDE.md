@@ -55,18 +55,19 @@ internal/update/
 **Key conventions — CLI:**
 - `internal/client/` owns all HTTP logic. New API calls go here.
 - The root command *is* the create-bug command — no subcommands.
-- `--json` flag for machine-readable stdout output (Claude SKILL integration). Returns `{"id", "url", "summary"}`.
+- `--json` flag for machine-readable stdout output (Claude SKILL integration). Returns `{"id", "url", "summary"}`, plus `"warning"` if a post-create update failed.
 - `--dry-run` flag: runs all validation and fuzzy resolution, then prints resolved `CreateBugParams` as `{"dry_run": true, "params": {...}}` without making any API call or writing history.
 - Errors to **stderr** via `fmt.Fprintf(os.Stderr, ...)`. `RunE` returns the error to trigger `os.Exit(1)`.
 - `SilenceErrors` and `SilenceUsage` on root — Cobra won't double-print.
 - Bugzilla returns `{ "error": true, "code": N, "message": "..." }` — check this **before** HTTP status.
 - Requires `config.APIKey`; exit early if empty before any network call.
+- `--regressed-by` is sent in the create request (documented by BMO). `--url` and `--see-also` are *not* documented for `POST /rest/bug`, so `client.CreateBug` strips them and `bugzilla.CreateBug` sets them with a follow-up `PUT /rest/bug/{id}` (`client.UpdateBug`, `see_also: {add: [...]}`). A failed follow-up sets `CreateBugResult.Warning` instead of returning an error — the bug already exists. `bugzilla.NormalizeSeeAlso()` turns bare bug IDs into `show_bug.cgi?id=N` URLs.
 - Use `cmd.Flags().Changed("flag")` to distinguish "not passed" from "passed empty" when merging with config defaults.
 - `--component` (`-c`) supports fuzzy matching via `sahilm/fuzzy` against the cached component list for the product. `EnsureComponents()` is called before `ResolveComponent()` to populate the cache on first use. Unknown products (not in cache) pass through for API validation.
 - Component list is fetched live from the Bugzilla API (`GET /rest/product?names=…`) and cached at `~/.config/create-bug/components.json`. The cache persists across invocations; there is no TTL — it is populated on first use and reused thereafter.
 - Short flags: `-p` (product), `-c` (component), `-b` (blocks), `-d` (depends-on), `-w` (whiteboard), `-k` (keywords), `-H` (history).
 - Tab completion registered for `--component` flag: reads from the component cache via `GetCachedComponents()` when `--product` is set or defaulted from config. Returns no completions if the product is not yet cached.
-- Tab completion registered for `--blocks` and `--depends-on` flags: `[meta]` bugs ranked first, then newest-first; each entry displays as `Bug {id} - {summary} [Product :: Component]`; handles comma-separated multi-value input.
+- Tab completion registered for `--blocks`, `--depends-on`, and `--regressed-by` flags: `[meta]` bugs ranked first, then newest-first; each entry displays as `Bug {id} - {summary} [Product :: Component]`; handles comma-separated multi-value input.
 - Tab completion registered for `--whiteboard` (single value) and `--keywords` (comma-separated multi-value); both source from `suggestions.Load*()`.
 - `internal/suggestions` is the single source of truth for whiteboard/keyword lists — built-in defaults merged with user JSON files in config dir.
 - `--history` (`-H`) shows recently filed bugs; `--clear-history` removes the history file. Both short-circuit before any bug creation logic.
@@ -78,7 +79,7 @@ internal/update/
 - `--update` fetches latest version synchronously and runs `go install github.com/gabrielluong/create-bug@latest` if outdated. Note: this installs only the CLI; to also update the TUI run `go install github.com/gabrielluong/create-bug/...@latest`.
 
 **Key conventions — TUI:**
-- `internal/tui/form/model.go` owns all form state and submission. Focus zones: Summary → Component → Description → Blocks → Depends on → Whiteboard → Keywords → Submit.
+- `internal/tui/form/model.go` owns all form state and submission. Focus zones: Summary → Component → Description → Blocks → Depends on → Whiteboard → Keywords → Submit. Regressed by / See also / URL are CLI-only by design.
 - Up/Down arrows navigate between fields unless a dropdown is open or Description is focused (textarea captures arrows for line movement).
 - `component.FuzzySelect`: single-value selector. Clears input on focus to show full list; auto-confirms best match on blur; restores previous selection if user clears input without choosing.
 - `component.BugIDInput`: multi-value comma-separated input. Fuzzy-matches against current segment (text after last comma); excludes already-entered IDs; `[meta]` bugs ranked first then newest-first; selecting from dropdown appends `id, ` and re-opens for next entry.

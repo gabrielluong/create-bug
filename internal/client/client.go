@@ -30,12 +30,40 @@ type CreateBugParams struct {
 	DependsOn   []int    `json:"depends_on,omitempty"`
 	Whiteboard  string   `json:"whiteboard,omitempty"`
 	Keywords    []string `json:"keywords,omitempty"`
+	RegressedBy []int    `json:"regressed_by,omitempty"`
+
+	// URL and SeeAlso are not documented as accepted by POST /rest/bug, so
+	// CreateBug strips them from the create request and sets them with a
+	// follow-up PUT /rest/bug/{id}. They stay in the struct so --dry-run
+	// shows them.
+	URL     string   `json:"url,omitempty"`
+	SeeAlso []string `json:"see_also,omitempty"`
+}
+
+// HasPostCreateFields reports whether any fields must be set with a
+// follow-up update after the bug is created.
+func (p CreateBugParams) HasPostCreateFields() bool {
+	return p.URL != "" || len(p.SeeAlso) > 0
 }
 
 type CreateBugResult struct {
 	ID      int    `json:"id"`
 	URL     string `json:"url,omitempty"`
 	Summary string `json:"summary,omitempty"`
+	// Warning is set when the bug was created but a follow-up update
+	// (URL / See Also) failed.
+	Warning string `json:"warning,omitempty"`
+}
+
+// UpdateBugParams is the subset of PUT /rest/bug/{id} fields we set after
+// creation.
+type UpdateBugParams struct {
+	URL     string        `json:"url,omitempty"`
+	SeeAlso *SeeAlsoDelta `json:"see_also,omitempty"`
+}
+
+type SeeAlsoDelta struct {
+	Add []string `json:"add"`
 }
 
 type Client struct {
@@ -159,7 +187,10 @@ func (c *Client) GetProductComponents(product string) ([]string, error) {
 func (c *Client) CreateBug(params CreateBugParams) (*CreateBugResult, error) {
 	u := fmt.Sprintf("%s/rest/bug", c.baseURL)
 
-	jsonBody, err := json.Marshal(params)
+	createParams := params
+	createParams.URL = ""
+	createParams.SeeAlso = nil
+	jsonBody, err := json.Marshal(createParams)
 	if err != nil {
 		return nil, err
 	}
@@ -190,4 +221,38 @@ func (c *Client) CreateBug(params CreateBugParams) (*CreateBugResult, error) {
 	}
 
 	return &result, nil
+}
+
+// UpdateBug applies the given fields to an existing bug.
+func (c *Client) UpdateBug(id int, params UpdateBugParams) error {
+	u := fmt.Sprintf("%s/rest/bug/%d", c.baseURL, id)
+
+	jsonBody, err := json.Marshal(params)
+	if err != nil {
+		return err
+	}
+
+	req, err := c.buildRequest("PUT", u, bytes.NewReader(jsonBody))
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if err := c.checkError(body); err != nil {
+		return err
+	}
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("update failed: HTTP %d", resp.StatusCode)
+	}
+	return nil
 }

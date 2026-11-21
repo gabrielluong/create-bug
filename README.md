@@ -151,11 +151,16 @@ Environment variables take priority over the config file:
 | `--status` | | Initial status |
 | `--whiteboard` | `-w` | Whiteboard field value |
 | `--keywords` | `-k` | Comma-separated keywords |
+| `--regressed-by` | | Comma-separated bug IDs that caused this regression |
+| `--see-also` | | Comma-separated See Also URLs or bug IDs (bare IDs become links on your Bugzilla) |
+| `--url` | | URL field value |
 | `--json` | | Output raw JSON (`id`, `url`, `summary`) |
 | `--dry-run` | | Print resolved params as JSON without filing |
 | `--history` | `-H` | Show recently filed bugs |
 | `--clear-history` | | Clear the filing history |
 | `--update` | | Update to the latest version |
+
+`--url` and `--see-also` are set with a follow-up update right after the bug is created, because Bugzilla's create API doesn't document them. If that update fails, the bug is still filed: a warning is printed to stderr and included as `warning` in `--json` output.
 
 ## Shell Completion
 
@@ -172,7 +177,7 @@ create-bug completion fish > ~/.config/fish/completions/create-bug.fish
 
 Tab completion is supported for:
 - `--component` — known components for the selected product
-- `--blocks` / `--depends-on` — bug IDs from your filing history, displayed as `Bug {id} - {summary} [Product :: Component]`; supports comma-separated multi-value input; `[meta]` bugs ranked first
+- `--blocks` / `--depends-on` / `--regressed-by` — bug IDs from your filing history, displayed as `Bug {id} - {summary} [Product :: Component]`; supports comma-separated multi-value input; `[meta]` bugs ranked first
 - `--whiteboard` — built-in and user-configured whiteboard values
 - `--keywords` — built-in and user-configured keywords; supports comma-separated multi-value input
 

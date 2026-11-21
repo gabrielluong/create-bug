@@ -35,6 +35,9 @@ From the source (file, text, or conversation), extract:
 5. Optional fields, only when the source clearly calls for them:
    - `--whiteboard` (single value, e.g. `[good-first-bug]`) — any string is accepted.
    - `--keywords` (comma-separated, e.g. `regression,crash`). Don't add `meta` to work bugs.
+   - `--regressed-by` (comma-separated bug IDs) for regressions with a known cause.
+   - `--see-also` (comma-separated URLs or bug IDs; bare IDs become links on this Bugzilla) for related bugs, issues, or PRs.
+   - `--url` (single URL) for a page that demonstrates the problem.
 
 **Scoping rule:** One bug = one discrete, reviewable unit of work. For conversation-derived bugs, focus on concrete actions taken or decisions made, not discussion or background context.
 
@@ -98,9 +101,9 @@ Ask: "Does this breakdown look right? Any bugs to add, split, merge, or re-order
 For each bug in order (skipping already-filed ones):
 1. Run:
    ```
-   create-bug "<summary>" [-p <product>] [-c <component>] --type <type> --description "<description>" [-d <id,...>] [-b <metabug_id>] [-w <whiteboard>] [-k <keywords>] --json
+   create-bug "<summary>" [-p <product>] [-c <component>] --type <type> --description "<description>" [-d <id,...>] [-b <metabug_id>] [-w <whiteboard>] [-k <keywords>] [--regressed-by <id,...>] [--see-also <url|id,...>] [--url <url>] --json
    ```
-2. Capture `{"id": N, "url": "...", "summary": "..."}` from stdout (stderr may contain a `Matched component:` notice — that's informational).
+2. Capture `{"id": N, "url": "...", "summary": "..."}` from stdout (stderr may contain a `Matched component:` notice — that's informational). If the JSON has a `warning`, the bug was filed but its URL/See Also couldn't be set — keep going, and list it in the summary so the user can set those fields by hand.
 3. Map logical position → real bug ID (for subsequent `--depends-on` values)
 4. Report inline: `Bug <id> - <summary> — <url>`
 
